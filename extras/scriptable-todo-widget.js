@@ -82,7 +82,7 @@ function buildWidget(todos) {
     ? Font.semiboldSystemFont(12)
     : Font.semiboldSystemFont(13);
   if (!isLock) header.textColor = Color.gray();
-  w.addSpacing(isLock ? 2 : 6);
+  w.addSpacer(isLock ? 2 : 6);
 
   const today = todayStr();
   const limit = isLock ? (family === "accessoryRectangular" ? 3 : 1) : MAX_ITEMS;
@@ -97,7 +97,7 @@ function buildWidget(todos) {
       row.font = Font.systemFont(isLock ? 12 : 13);
       row.lineLimit = 1;
       if (overdue && !isLock) row.textColor = Color.red();
-      w.addSpacing(isLock ? 1 : 3);
+      w.addSpacer(isLock ? 1 : 3);
     }
     if (todos.length > limit) {
       const more = w.addText(`+${todos.length - limit} 더`);
