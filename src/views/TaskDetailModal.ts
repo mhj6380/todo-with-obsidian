@@ -1,5 +1,6 @@
 import { App, Modal, Setting } from "obsidian";
 import { Task } from "../model/Task";
+import { CategorySuggest } from "./CategorySuggest";
 
 export interface TaskChanges {
   description: string;
@@ -105,10 +106,7 @@ export class TaskDetailModal extends Modal {
     if (!this.getCategories) return;
     const cats = await this.getCategories();
     if (!cats.length) return;
-    const id = "two-cat-list-detail";
-    const list = this.contentEl.createEl("datalist", { attr: { id } });
-    cats.forEach((c) => list.createEl("option", { value: c }));
-    input.setAttribute("list", id);
+    new CategorySuggest(this.app, input, cats);
   }
 
   private save(): void {

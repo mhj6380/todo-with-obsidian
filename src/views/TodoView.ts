@@ -3,6 +3,7 @@ import type TodoPlugin from "../main";
 import { Task } from "../model/Task";
 import { isDueToday, isOverdue } from "../services/DateService";
 import { TaskDetailModal } from "./TaskDetailModal";
+import { CategorySuggest } from "./CategorySuggest";
 
 export const TODO_VIEW_TYPE = "todo-with-obsidian-view";
 
@@ -47,16 +48,19 @@ export class TodoView extends ItemView {
     root.empty();
     const container = root.createDiv({ cls: "two-view" });
 
-    this.renderInputRow(container);
-    this.renderFilterTabs(container);
-
     const tasks = await this.plugin.store.readTasks(
       this.plugin.settings.inboxPath
     );
+    const categories = [
+      ...new Set(tasks.map((t) => t.category).filter((c): c is string => !!c)),
+    ];
+
+    this.renderInputRow(container, categories);
+    this.renderFilterTabs(container);
     this.renderGroups(container, this.applyFilter(tasks));
   }
 
-  private renderInputRow(container: HTMLElement): void {
+  private renderInputRow(container: HTMLElement, categories: string[]): void {
     const inputRow = container.createDiv({ cls: "two-input-row" });
     const input = inputRow.createEl("input", {
       type: "text",
@@ -67,6 +71,7 @@ export class TodoView extends ItemView {
       cls: "two-cat-input",
       placeholder: "카테고리",
     });
+    if (categories.length) new CategorySuggest(this.app, cat, categories);
     const due = inputRow.createEl("input", { type: "date", cls: "two-due-input" });
     const addBtn = inputRow.createEl("button", { text: "추가" });
 

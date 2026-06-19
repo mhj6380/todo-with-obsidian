@@ -1,4 +1,5 @@
 import { App, Modal, Setting } from "obsidian";
+import { CategorySuggest } from "./CategorySuggest";
 
 export interface QuickAddResult {
   description: string;
@@ -76,10 +77,7 @@ export class QuickAddModal extends Modal {
     if (!this.getCategories) return;
     const cats = await this.getCategories();
     if (!cats.length) return;
-    const id = "two-cat-list";
-    const list = this.contentEl.createEl("datalist", { attr: { id } });
-    cats.forEach((c) => list.createEl("option", { value: c }));
-    input.setAttribute("list", id);
+    new CategorySuggest(this.app, input, cats);
   }
 
   private submit(): void {

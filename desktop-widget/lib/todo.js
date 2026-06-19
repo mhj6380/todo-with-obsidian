@@ -1,10 +1,16 @@
 // Obsidian Todo 위젯 — 파일 입출력/파싱/직렬화.
-// 플러그인(src/model/*, src/services/*)과 동일한 포맷을 그대로 미러링한다.
+// 플러그인(src/model/*, src/services/*)과 동일한 포맷을 미러링한다:
+//  - 카테고리 = `## 헤딩` 섹션
+//  - 상세내용 = 할 일 줄 아래 들여쓰기 블록
 const fs = require("fs");
 const path = require("path");
 
 const EMOJI = { created: "➕", due: "📅", done: "✅" };
 const TASK_LINE = /^(\s*)- \[( |x|X)\]\s+(.*)$/;
+const HEADING = /^(#{1,6})\s+(.*\S)\s*$/;
+const INDENTED = /^(?:\t| {2,})(.*)$/;
+const HEADING_RE = /^#{1,6}\s+/;
+const INDENT_RE = /^(?:\t| {2,})/;
 const DATE = "(\\d{4}-\\d{2}-\\d{2})";
 const reCreated = new RegExp(EMOJI.created + "\\s*" + DATE);
 const reDue = new RegExp(EMOJI.due + "\\s*" + DATE);
@@ -14,7 +20,10 @@ const pad = (n) => (n < 10 ? "0" + n : "" + n);
 const today = (d = new Date()) =>
   `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const nowTime = (d = new Date()) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-const isOverdue = (due, ref = today()) => (due ? due < ref : false);
+
+function isTaskLine(line) {
+  return TASK_LINE.test(line);
+}
 
 function parseLine(line) {
   const m = line.match(TASK_LINE);
@@ -49,6 +58,74 @@ function serialize(t) {
   return parts.join(" ");
 }
 
+function serializeBlock(t, indent = "    ") {
+  let out = serialize(t);
+  if (t.detail && t.detail.trim()) {
+    out +=
+      "\n" +
+      t.detail
+        .replace(/\s+$/, "")
+        .split("\n")
+        .map((l) => indent + l)
+        .join("\n");
+  }
+  return out;
+}
+
+function parseDocument(content) {
+  const lines = content.split("\n");
+  const tasks = [];
+  let category = null;
+  for (let i = 0; i < lines.length; i++) {
+    const h = lines[i].match(HEADING);
+    if (h) {
+      category = h[1].length >= 2 ? h[2].trim() : null;
+      continue;
+    }
+    const task = parseLine(lines[i]);
+    if (!task) continue;
+    const detailLines = [];
+    let j = i + 1;
+    while (j < lines.length && !isTaskLine(lines[j])) {
+      const m = lines[j].match(INDENTED);
+      if (!m) break;
+      detailLines.push(m[1]);
+      j++;
+    }
+    task.category = category;
+    task.detail = detailLines.length ? detailLines.join("\n") : undefined;
+    task.start = i;
+    task.end = j;
+    tasks.push(task);
+    i = j - 1;
+  }
+  return tasks;
+}
+
+function insertBlock(data, block, category) {
+  if (!category) {
+    const trimmed = data.replace(/\s*$/, "");
+    return `${trimmed}\n${block}\n`;
+  }
+  const heading = `## ${category}`;
+  const lines = data.split("\n");
+  const hIdx = lines.findIndex((l) => l.trim() === heading);
+  if (hIdx === -1) {
+    const trimmed = data.replace(/\s*$/, "");
+    return `${trimmed}\n\n${heading}\n${block}\n`;
+  }
+  let insertAt = lines.length;
+  for (let i = hIdx + 1; i < lines.length; i++) {
+    if (HEADING_RE.test(lines[i])) {
+      insertAt = i;
+      break;
+    }
+  }
+  while (insertAt > hIdx + 1 && lines[insertAt - 1].trim() === "") insertAt--;
+  lines.splice(insertAt, 0, block);
+  return lines.join("\n");
+}
+
 class Store {
   constructor(cfg) {
     this.cfg = cfg;
@@ -59,7 +136,6 @@ class Store {
   dailyFile() {
     return path.join(this.cfg.vaultPath, this.cfg.dailyFolder, `${today()}.md`);
   }
-
   readRaw() {
     try {
       return fs.readFileSync(this.inboxFile(), "utf8");
@@ -68,44 +144,41 @@ class Store {
     }
   }
 
-  /** 미완료/완료 전체 Task 배열 (줄 순서 유지) */
   readTasks() {
-    return this.readRaw()
-      .split("\n")
-      .map(parseLine)
-      .filter(Boolean);
+    return parseDocument(this.readRaw());
   }
 
-  /** Inbox 끝에 새 할 일 추가 */
-  addTask(description, dueDate) {
+  categories() {
+    const seen = [];
+    for (const t of this.readTasks()) {
+      if (t.category && !seen.includes(t.category)) seen.push(t.category);
+    }
+    return seen;
+  }
+
+  addTask(description, category) {
     description = (description || "").trim();
     if (!description) return;
-    const line = serialize({
+    const task = {
       description,
       completed: false,
       createdDate: today(),
-      dueDate: dueDate || undefined,
-    });
+      category: (category || "").trim() || undefined,
+    };
+    const block = serializeBlock(task);
     let data = this.readRaw();
     if (!data) data = "# Todos\n\n";
-    const trimmed = data.replace(/\s*$/, "");
-    this._write(this.inboxFile(), `${trimmed}\n${line}\n`);
+    this._write(this.inboxFile(), insertBlock(data, block, task.category));
   }
 
-  /**
-   * 할 일을 완료 처리한다. raw 줄로 먼저 찾고, 없으면 설명으로 찾는다.
-   * 완료 후 Daily Note 에도 기록(플러그인과 동일).
-   */
   toggleComplete(target) {
     const lines = this.readRaw().split("\n");
-    const wantRaw = target && target.raw;
-    const wantDesc = target && target.description;
     let hit = -1;
-    if (wantRaw) hit = lines.findIndex((l) => l === wantRaw);
-    if (hit === -1 && wantDesc) {
+    if (target && target.raw) hit = lines.findIndex((l) => l === target.raw);
+    if (hit === -1 && target && target.description) {
       hit = lines.findIndex((l) => {
         const t = parseLine(l);
-        return t && !t.completed && t.description === wantDesc;
+        return t && !t.completed && t.description === target.description;
       });
     }
     if (hit === -1) return;
@@ -113,27 +186,32 @@ class Store {
     if (!t || t.completed) return;
     t.completed = true;
     t.completedDate = today();
+    t.dueDate = (target && target.dueDate) || t.dueDate;
     lines[hit] = serialize(t);
     this._write(this.inboxFile(), lines.join("\n"));
-    if (this.cfg.logCompletions) {
-      this._logCompletion(t);
-    }
+    if (this.cfg.logCompletions) this._logCompletion(t);
   }
 
-  /**
-   * 미완료 할 일들의 순서를 재배치한다. orderedRaws 는 새 순서의 원본 줄 배열.
-   * 미완료 줄이 있던 "위치(slot)"는 유지하고 그 자리에 들어갈 내용만 바꾼다
-   * (헤더·완료된 줄은 건드리지 않음).
-   */
-  reorder(orderedRaws) {
-    const lines = this.readRaw().split("\n");
-    const slots = [];
-    for (let i = 0; i < lines.length; i++) {
-      const t = parseLine(lines[i]);
-      if (t && !t.completed) slots.push(i);
-    }
-    if (slots.length !== orderedRaws.length) return; // 그새 파일이 바뀌면 중단(안전)
-    for (let k = 0; k < slots.length; k++) lines[slots[k]] = orderedRaws[k];
+  /** 한 카테고리 안의 "미완료" 할 일 블록 순서를 재배치 (상세 블록 포함 이동) */
+  reorder(category, orderedRaws) {
+    const cat = category || null;
+    const data = this.readRaw();
+    const lines = data.split("\n");
+    const tasks = parseDocument(data).filter(
+      (t) => (t.category || null) === cat && !t.completed
+    );
+    if (tasks.length !== orderedRaws.length) return; // 그새 바뀌면 중단
+    const byRaw = new Map(
+      tasks.map((t) => [t.raw, lines.slice(t.start, t.end).join("\n")])
+    );
+    const insertAt = Math.min(...tasks.map((t) => t.start));
+    // 아래에서 위로 제거(인덱스 안 깨지게)
+    tasks
+      .slice()
+      .sort((a, b) => b.start - a.start)
+      .forEach((t) => lines.splice(t.start, t.end - t.start));
+    const blocks = orderedRaws.map((r) => byRaw.get(r)).filter((x) => x != null);
+    lines.splice(insertAt, 0, blocks.join("\n"));
     this._write(this.inboxFile(), lines.join("\n"));
   }
 
@@ -150,12 +228,11 @@ class Store {
     const lines = data.split("\n");
     const hIdx = lines.findIndex((l) => l.trim() === heading);
     if (hIdx === -1) {
-      const trimmed = data.replace(/\s*$/, "");
-      data = `${trimmed}\n\n${heading}\n${line}\n`;
+      data = `${data.replace(/\s*$/, "")}\n\n${heading}\n${line}\n`;
     } else {
       let insertAt = lines.length;
       for (let i = hIdx + 1; i < lines.length; i++) {
-        if (/^#{1,6}\s/.test(lines[i])) {
+        if (HEADING_RE.test(lines[i])) {
           insertAt = i;
           break;
         }
@@ -173,4 +250,4 @@ class Store {
   }
 }
 
-module.exports = { Store, parseLine, serialize, today, nowTime, isOverdue };
+module.exports = { Store, parseDocument, serialize, serializeBlock, today };
