@@ -44,6 +44,11 @@ export default class TodoPlugin extends Plugin {
       name: "할 일 빠르게 추가",
       callback: () => this.quickAdd(),
     });
+    this.addCommand({
+      id: "open-todo-popout",
+      name: "Todo 새 창으로 열기 (데스크톱)",
+      callback: () => this.activatePopout(),
+    });
 
     this.addSettingTab(new TodoSettingTab(this.app, this));
 
@@ -118,6 +123,15 @@ export default class TodoPlugin extends Plugin {
       await leaf?.setViewState({ type: TODO_VIEW_TYPE, active: true });
     }
     if (leaf) workspace.revealLeaf(leaf);
+  }
+
+  /** Todo 뷰를 작은 독립 창(pop-out)으로 연다. 데스크톱 전용 기능. */
+  async activatePopout(): Promise<void> {
+    const leaf = this.app.workspace.openPopoutLeaf({
+      size: { width: 360, height: 640 },
+    });
+    await leaf.setViewState({ type: TODO_VIEW_TYPE, active: true });
+    this.app.workspace.revealLeaf(leaf);
   }
 
   private refreshViews(): void {
