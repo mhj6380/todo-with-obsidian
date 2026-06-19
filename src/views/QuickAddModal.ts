@@ -30,9 +30,9 @@ export class QuickAddModal extends Modal {
       t.setPlaceholder("무엇을 할까요?").onChange((v) => {
         this.description = v;
       });
-      // Enter 로 바로 제출
+      // Enter 로 바로 제출 (IME 조합 중에는 무시 — 한글 글자 깨짐 방지)
       t.inputEl.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") this.submit();
+        if (e.key === "Enter" && !e.isComposing) this.submit();
       });
     });
 

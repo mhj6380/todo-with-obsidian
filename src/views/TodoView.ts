@@ -75,7 +75,8 @@ export class TodoView extends ItemView {
     };
     addBtn.onclick = submit;
     input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") submit();
+      // IME(한글 등) 조합 중 Enter 는 글자를 깨뜨리므로 무시
+      if (e.key === "Enter" && !e.isComposing) submit();
     });
   }
 
