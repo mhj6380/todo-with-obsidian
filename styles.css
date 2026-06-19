@@ -86,3 +86,42 @@
 .two-task-meta.is-overdue {
   color: var(--text-error);
 }
+
+/* ── Pop-out 글래스 모드 ──────────────────────────────────────────
+   별도 창(Todo 새 창으로 열기)에서만 적용. 도킹된 사이드바는 그대로.
+   ※ macOS '반투명 창(Translucent window)' 설정과 함께 써야 유리 느낌이 산다. */
+
+/* 창/뷰 배경을 투명하게 → 창의 반투명(vibrancy)이 비쳐 보이게 */
+.is-popout-window,
+.is-popout-window .app-container,
+.is-popout-window .workspace,
+.is-popout-window .workspace-split,
+.is-popout-window .workspace-leaf,
+.is-popout-window .workspace-leaf-content,
+.is-popout-window .view-content {
+  background: transparent !important;
+}
+
+.is-popout-window .two-view {
+  padding: 10px 12px;
+}
+
+/* 할 일 카드: 프로스트 글래스 */
+.is-popout-window .two-task {
+  background: rgba(127, 127, 127, 0.1);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+}
+
+.is-popout-window .two-tab {
+  background: rgba(127, 127, 127, 0.14);
+}
+
+.is-popout-window .two-input-row input {
+  background: rgba(127, 127, 127, 0.12);
+}
