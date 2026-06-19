@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Todo</title>
+    <style>
+      :root {
+        --fg: rgba(255, 255, 255, 0.92);
+        --fg-dim: rgba(255, 255, 255, 0.5);
+        --accent: #6c8cff;
+        --danger: #ff6b6b;
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        height: 100%;
+        background: transparent;
+        font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+          sans-serif;
+        color: var(--fg);
+        -webkit-user-select: none;
+        user-select: none;
+        overflow: hidden;
+      }
+      /* 유리 패널 — 투명 창 + macOS vibrancy 위에 옅은 틴트 */
+      .panel {
+        height: 100vh;
+        background: rgba(28, 28, 32, 0.28);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 14px;
+        backdrop-filter: blur(6px);
+        display: flex;
+        flex-direction: column;
+        padding: 8px 10px 10px;
+      }
+      header {
+        -webkit-app-region: drag; /* 이 영역을 잡고 창 이동 */
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 2px 2px 8px;
+      }
+      header .title {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--fg-dim);
+        flex: 1;
+      }
+      header button {
+        -webkit-app-region: no-drag;
+        background: transparent;
+        border: none;
+        color: var(--fg-dim);
+        font-size: 13px;
+        cursor: pointer;
+        padding: 2px 6px;
+        border-radius: 6px;
+      }
+      header button:hover { background: rgba(255, 255, 255, 0.1); color: var(--fg); }
+
+      .add-row {
+        -webkit-app-region: no-drag;
+        display: flex;
+        gap: 5px;
+        margin-bottom: 8px;
+      }
+      .add-row input[type="text"] {
+        flex: 1;
+        min-width: 0;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 8px;
+        color: var(--fg);
+        padding: 6px 8px;
+        font-size: 13px;
+        outline: none;
+      }
+      .add-row input::placeholder { color: var(--fg-dim); }
+
+      .list { flex: 1; overflow-y: auto; }
+      .list::-webkit-scrollbar { width: 6px; }
+      .list::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.18);
+        border-radius: 3px;
+      }
+
+      .task {
+        -webkit-app-region: no-drag;
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 7px 8px;
+        margin-bottom: 6px;
+        background: rgba(255, 255, 255, 0.07);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 10px;
+      }
+      .task input[type="checkbox"] {
+        margin: 2px 0 0;
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+        accent-color: var(--accent);
+        flex: none;
+      }
+      .task .body { flex: 1; font-size: 13px; line-height: 1.35; }
+      .task .meta { font-size: 11px; color: var(--fg-dim); margin-top: 2px; }
+      .task .meta.overdue { color: var(--danger); }
+
+      .empty { color: var(--fg-dim); font-style: italic; font-size: 13px; padding: 10px 4px; }
+    </style>
+  </head>
+  <body>
+    <div class="panel">
+      <header>
+        <span class="title" id="title">✓ 할 일</span>
+        <button id="refresh" title="새로고침">↻</button>
+        <button id="quit" title="닫기">✕</button>
+      </header>
+      <div class="add-row">
+        <input id="add-input" type="text" placeholder="할 일 추가…" />
+        <input id="add-due" type="date" style="-webkit-app-region:no-drag; width:34px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.12); border-radius:8px; color:var(--fg);" />
+      </div>
+      <div class="list" id="list"></div>
+    </div>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const todayStr = () => {
+        const d = new Date();
+        const p = (n) => String(n).padStart(2, "0");
+        return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+      };
+
+      function render(tasks) {
+        const open = tasks.filter((t) => !t.completed);
+        $("title").textContent = `✓ 할 일 ${open.length}`;
+        const list = $("list");
+        list.innerHTML = "";
+        if (open.length === 0) {
+          const e = document.createElement("div");
+          e.className = "empty";
+          e.textContent = "모두 완료 🎉";
+          list.appendChild(e);
+          return;
+        }
+        const today = todayStr();
+        for (const t of open) {
+          const row = document.createElement("div");
+          row.className = "task";
+
+          const cb = document.createElement("input");
+          cb.type = "checkbox";
+          cb.addEventListener("change", async () => {
+            cb.disabled = true;
+            const updated = await window.todoAPI.toggle(t);
+            render(updated);
+          });
+
+          const body = document.createElement("div");
+          body.className = "body";
+          body.textContent = t.description;
+          if (t.dueDate) {
+            const meta = document.createElement("div");
+            meta.className = "meta" + (t.dueDate < today ? " overdue" : "");
+            meta.textContent = "📅 " + t.dueDate;
+            body.appendChild(meta);
+          }
+
+          row.appendChild(cb);
+          row.appendChild(body);
+          list.appendChild(row);
+        }
+      }
+
+      async function refresh() {
+        render(await window.todoAPI.list());
+      }
+
+      async function add() {
+        const input = $("add-input");
+        const due = $("add-due");
+        const v = input.value.trim();
+        if (!v) return;
+        input.value = "";
+        const dueDate = due.value || undefined;
+        due.value = "";
+        render(await window.todoAPI.add({ description: v, dueDate }));
+      }
+
+      $("add-input").addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.isComposing) add();
+      });
+      $("refresh").addEventListener("click", refresh);
+      $("quit").addEventListener("click", () => window.todoAPI.quit());
+      window.todoAPI.onChanged(() => refresh()); // 외부(동기화) 변경 반영
+
+      refresh();
+    </script>
+  </body>
+</html>

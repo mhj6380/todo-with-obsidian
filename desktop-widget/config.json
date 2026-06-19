@@ -1,0 +1,8 @@
+{
+  "vaultPath": "/Users/hakju/Documents/Obsidian Vault",
+  "inboxPath": "Todos/Inbox.md",
+  "dailyFolder": "Daily",
+  "completedHeading": "## ✅ 완료한 일",
+  "logCompletions": true,
+  "window": { "width": 320, "height": 460, "marginTop": 12, "marginRight": 12 }
+}
