@@ -1,16 +1,28 @@
 # Todo with Obsidian — 설계 문서
 
-맥북 · 아이폰 · Obsidian 을 연동하는 개인용 Todo 시스템. 할 일을 만들고 완료를
-체크하면 그날의 Daily Note 에 날짜별로 자동 기록된다.
+맥북 · 아이폰 · 갤럭시탭(안드로이드)을 Obsidian 으로 연동하는 개인용 Todo 시스템.
+할 일을 만들고 완료를 체크하면 그날의 Daily Note 에 날짜별로 자동 기록된다.
+
+대상 기기: macOS · iOS · Android (Obsidian 이 세 OS 모두 지원, 플러그인은
+`isDesktopOnly: false` 로 모바일 공통 동작).
 
 ## 핵심 결정
 
 | 선택 | 결정 | 이유 |
 |---|---|---|
-| 앱 형태 | **Obsidian 플러그인 (TypeScript)** | Obsidian 자체가 맥/아이폰 네이티브 앱. 동기화·파일접근을 직접 풀 필요 없음. 개발자의 JS/TS 역량 활용. |
+| 앱 형태 | **Obsidian 플러그인 (TypeScript)** | Obsidian 자체가 맥/아이폰/안드로이드 네이티브 앱. 동기화·파일접근을 직접 풀 필요 없음. 개발자의 JS/TS 역량 활용. |
 | 데이터 | **볼트 안의 마크다운 파일** | 단일 진실 소스. 평범한 .md 라서 동기화가 그대로 전파됨. |
 | 포맷 | **Obsidian Tasks 이모지 포맷** (`➕ 📅 ✅`) | 바퀴 재발명 회피, Tasks/Dataview 와 호환. |
-| 동기화 | **iCloud Drive(무료)로 시작 → 불안정하면 Obsidian Sync(유료)** | 플러그인 방식은 외부 앱 파일접근이 불필요해 포맷 잠금 무관. |
+| 동기화 | **Obsidian Sync(유료) 권장 / 무료는 Remotely Save 플러그인** | iOS+Android 동시 지원이 필수 → iCloud 는 안드로이드 불가로 탈락. |
+
+### 동기화 옵션 (맥 + 아이폰 + 갤럭시탭 3개 OS 모두 지원 필요)
+
+| 방식 | macOS | iOS | Android | 비용 | 비고 |
+|---|:--:|:--:|:--:|---|---|
+| **Obsidian Sync** | ✅ | ✅ | ✅ | 유료(~$4/월) | 가장 쉬움, 플러그인·설정까지 동기화 |
+| **Remotely Save** + 클라우드(Dropbox/OneDrive/S3/WebDAV) | ✅ | ✅ | ✅ | 무료~저렴 | 주기/수동 동기화, 충돌 파일 주의 |
+| iCloud Drive | ✅ | ✅ | ❌ | 무료 | 안드로이드 불가 → **탈락** |
+| Syncthing | ✅ | △ | ✅ | 무료 | iOS 까다로움 → 비추천 |
 
 ## 아키텍처
 
