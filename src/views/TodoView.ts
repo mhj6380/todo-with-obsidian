@@ -1,12 +1,23 @@
 import { ItemView, WorkspaceLeaf } from "obsidian";
 import type TodoPlugin from "../main";
 import { Task } from "../model/Task";
+import { isDueToday, isOverdue } from "../services/DateService";
 
 export const TODO_VIEW_TYPE = "todo-with-obsidian-view";
 
-/** 사이드바에 뜨는 Todo UI. 추가 입력 + 할 일 목록 + 완료 토글. */
+type Filter = "all" | "today" | "overdue" | "done";
+
+const FILTERS: { key: Filter; label: string }[] = [
+  { key: "all", label: "전체" },
+  { key: "today", label: "오늘" },
+  { key: "overdue", label: "지연" },
+  { key: "done", label: "완료" },
+];
+
+/** 사이드바 Todo UI: 추가 입력 + 필터 탭 + 목록 + 완료 토글. */
 export class TodoView extends ItemView {
   private plugin: TodoPlugin;
+  private filter: Filter = "all";
 
   constructor(leaf: WorkspaceLeaf, plugin: TodoPlugin) {
     super(leaf);
@@ -35,41 +46,73 @@ export class TodoView extends ItemView {
     root.empty();
     const container = root.createDiv({ cls: "two-view" });
 
-    // 입력 줄
+    this.renderInputRow(container);
+    this.renderFilterTabs(container);
+
+    const tasks = await this.plugin.store.readTasks(
+      this.plugin.settings.inboxPath
+    );
+    this.renderList(container, this.applyFilter(tasks));
+  }
+
+  private renderInputRow(container: HTMLElement): void {
     const inputRow = container.createDiv({ cls: "two-input-row" });
     const input = inputRow.createEl("input", {
       type: "text",
       placeholder: "할 일 추가…",
     });
+    const due = inputRow.createEl("input", { type: "date", cls: "two-due-input" });
     const addBtn = inputRow.createEl("button", { text: "추가" });
 
     const submit = async () => {
       const value = input.value.trim();
       if (!value) return;
       input.value = "";
-      await this.plugin.createTask(value);
+      const dueDate = due.value || undefined;
+      due.value = "";
+      await this.plugin.createTask(value, dueDate);
       await this.render();
     };
     addBtn.onclick = submit;
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter") submit();
     });
+  }
 
-    // 목록
-    const tasks = await this.plugin.store.readTasks(
-      this.plugin.settings.inboxPath
-    );
-    const active = tasks.filter((t) => !t.completed);
-    const done = tasks.filter((t) => t.completed);
-
-    this.renderSection(container, "할 일", active);
-    if (done.length > 0) {
-      this.renderSection(container, "완료", done);
+  private renderFilterTabs(container: HTMLElement): void {
+    const tabs = container.createDiv({ cls: "two-tabs" });
+    for (const f of FILTERS) {
+      const tab = tabs.createEl("button", {
+        cls: "two-tab",
+        text: f.label,
+      });
+      if (f.key === this.filter) tab.addClass("is-active");
+      tab.onclick = async () => {
+        this.filter = f.key;
+        await this.render();
+      };
     }
   }
 
-  private renderSection(parent: HTMLElement, title: string, tasks: Task[]): void {
-    parent.createDiv({ cls: "two-section-title", text: title });
+  private applyFilter(tasks: Task[]): Task[] {
+    switch (this.filter) {
+      case "done":
+        return tasks.filter((t) => t.completed);
+      case "today":
+        return tasks.filter(
+          (t) =>
+            !t.completed &&
+            (isDueToday(t.dueDate) || isOverdue(t.dueDate))
+        );
+      case "overdue":
+        return tasks.filter((t) => !t.completed && isOverdue(t.dueDate));
+      case "all":
+      default:
+        return tasks.filter((t) => !t.completed);
+    }
+  }
+
+  private renderList(parent: HTMLElement, tasks: Task[]): void {
     if (tasks.length === 0) {
       parent.createDiv({ cls: "two-empty", text: "없음" });
       return;
@@ -85,9 +128,17 @@ export class TodoView extends ItemView {
         await this.render();
       };
 
-      const desc = row.createDiv({ cls: "two-task-desc", text: task.description });
+      const desc = row.createDiv({
+        cls: "two-task-desc",
+        text: task.description,
+      });
       if (task.dueDate) {
-        desc.createSpan({ cls: "two-task-meta", text: `📅 ${task.dueDate}` });
+        const overdue = !task.completed && isOverdue(task.dueDate);
+        const meta = desc.createSpan({
+          cls: "two-task-meta",
+          text: `📅 ${task.dueDate}`,
+        });
+        if (overdue) meta.addClass("is-overdue");
       }
     }
   }

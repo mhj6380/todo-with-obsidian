@@ -44,12 +44,17 @@ export class VaultStore {
   }
 
   /** Inbox 끝에 새 할 일을 추가하고, 만든 Task 를 반환 */
-  async addTask(inboxPath: string, description: string): Promise<Task> {
+  async addTask(
+    inboxPath: string,
+    description: string,
+    dueDate?: string
+  ): Promise<Task> {
     const file = await this.ensureFile(inboxPath, `# Todos\n\n`);
     const task: Task = {
       description: description.trim(),
       completed: false,
       createdDate: today(),
+      dueDate: dueDate || undefined,
       filePath: inboxPath,
       lineNumber: -1,
       raw: "",

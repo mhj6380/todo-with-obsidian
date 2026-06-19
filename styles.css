@@ -56,3 +56,33 @@
   font-style: italic;
   padding: 8px 0;
 }
+
+.two-due-input {
+  width: 130px;
+}
+
+.two-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.two-tab {
+  flex: 1;
+  padding: 2px 6px;
+  font-size: var(--font-ui-smaller);
+  background: var(--background-secondary);
+  border: none;
+  border-radius: var(--radius-s);
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.two-tab.is-active {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+.two-task-meta.is-overdue {
+  color: var(--text-error);
+}

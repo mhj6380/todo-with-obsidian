@@ -7,6 +7,7 @@ import {
 import { VaultStore } from "./services/VaultStore";
 import { DailyLogger } from "./services/DailyLogger";
 import { TodoView, TODO_VIEW_TYPE } from "./views/TodoView";
+import { QuickAddModal } from "./views/QuickAddModal";
 import { Task } from "./model/Task";
 
 export default class TodoPlugin extends Plugin {
@@ -53,8 +54,12 @@ export default class TodoPlugin extends Plugin {
   }
 
   /** 할 일 생성 + (옵션) Daily Note 기록 */
-  async createTask(description: string): Promise<Task> {
-    const task = await this.store.addTask(this.settings.inboxPath, description);
+  async createTask(description: string, dueDate?: string): Promise<Task> {
+    const task = await this.store.addTask(
+      this.settings.inboxPath,
+      description,
+      dueDate
+    );
     await this.logger.logCreation(task);
     this.refreshViews();
     return task;
@@ -70,10 +75,12 @@ export default class TodoPlugin extends Plugin {
     this.refreshViews();
   }
 
-  private async quickAdd(): Promise<void> {
-    // 간단 버전: 프롬프트 대신 뷰를 열어 입력 유도.
-    // (추후 모달 입력으로 교체 예정 — Phase 3)
-    await this.activateView();
+  /** 단축키로 어디서든 할 일을 추가하는 모달 */
+  private quickAdd(): void {
+    new QuickAddModal(this.app, async ({ description, dueDate }) => {
+      await this.createTask(description, dueDate);
+      new Notice(`➕ ${description}`);
+    }).open();
   }
 
   /** 우측 사이드바에 Todo 뷰를 열고 포커스 */
