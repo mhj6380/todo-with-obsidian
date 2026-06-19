@@ -15,11 +15,16 @@ export interface Task {
   /** ✅ 완료일 (YYYY-MM-DD) */
   completedDate?: string;
 
+  /** 카테고리 (직전 `## 헤딩` 텍스트). 헤딩 없으면 undefined = 미분류 */
+  category?: string;
+  /** 상세내용 (할 일 줄 아래 들여쓰기 블록). 여러 줄 가능, 없으면 undefined */
+  detail?: string;
+
   /** 이 할 일이 들어있는 파일 경로 */
   filePath: string;
-  /** 파일 내 0-기반 줄 번호 */
+  /** 파일 내 0-기반 줄 번호 (할 일 줄의 시작) */
   lineNumber: number;
-  /** 원본 마크다운 줄 (들여쓰기/접두 기호 포함) */
+  /** 원본 마크다운 줄 (상세 제외, 할 일 줄만) */
   raw: string;
 }
 

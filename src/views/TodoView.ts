@@ -2,6 +2,7 @@ import { ItemView, WorkspaceLeaf } from "obsidian";
 import type TodoPlugin from "../main";
 import { Task } from "../model/Task";
 import { isDueToday, isOverdue } from "../services/DateService";
+import { TaskDetailModal } from "./TaskDetailModal";
 
 export const TODO_VIEW_TYPE = "todo-with-obsidian-view";
 
@@ -14,7 +15,9 @@ const FILTERS: { key: Filter; label: string }[] = [
   { key: "done", label: "완료" },
 ];
 
-/** 사이드바 Todo UI: 추가 입력 + 필터 탭 + 목록 + 완료 토글. */
+const UNCATEGORIZED = "미분류";
+
+/** 사이드바 Todo UI: 추가 입력 + 필터 탭 + 카테고리 그룹 목록 + 완료/상세. */
 export class TodoView extends ItemView {
   private plugin: TodoPlugin;
   private filter: Filter = "all";
@@ -27,11 +30,9 @@ export class TodoView extends ItemView {
   getViewType(): string {
     return TODO_VIEW_TYPE;
   }
-
   getDisplayText(): string {
     return "Todo";
   }
-
   getIcon(): string {
     return "checkmark";
   }
@@ -52,7 +53,7 @@ export class TodoView extends ItemView {
     const tasks = await this.plugin.store.readTasks(
       this.plugin.settings.inboxPath
     );
-    this.renderList(container, this.applyFilter(tasks));
+    this.renderGroups(container, this.applyFilter(tasks));
   }
 
   private renderInputRow(container: HTMLElement): void {
@@ -60,6 +61,11 @@ export class TodoView extends ItemView {
     const input = inputRow.createEl("input", {
       type: "text",
       placeholder: "할 일 추가…",
+    });
+    const cat = inputRow.createEl("input", {
+      type: "text",
+      cls: "two-cat-input",
+      placeholder: "카테고리",
     });
     const due = inputRow.createEl("input", { type: "date", cls: "two-due-input" });
     const addBtn = inputRow.createEl("button", { text: "추가" });
@@ -69,13 +75,13 @@ export class TodoView extends ItemView {
       if (!value) return;
       input.value = "";
       const dueDate = due.value || undefined;
+      const category = cat.value.trim() || undefined;
       due.value = "";
-      await this.plugin.createTask(value, dueDate);
+      await this.plugin.createTask({ description: value, dueDate, category });
       await this.render();
     };
     addBtn.onclick = submit;
     input.addEventListener("keydown", (e) => {
-      // IME(한글 등) 조합 중 Enter 는 글자를 깨뜨리므로 무시
       if (e.key === "Enter" && !e.isComposing) submit();
     });
   }
@@ -83,10 +89,7 @@ export class TodoView extends ItemView {
   private renderFilterTabs(container: HTMLElement): void {
     const tabs = container.createDiv({ cls: "two-tabs" });
     for (const f of FILTERS) {
-      const tab = tabs.createEl("button", {
-        cls: "two-tab",
-        text: f.label,
-      });
+      const tab = tabs.createEl("button", { cls: "two-tab", text: f.label });
       if (f.key === this.filter) tab.addClass("is-active");
       tab.onclick = async () => {
         this.filter = f.key;
@@ -101,9 +104,7 @@ export class TodoView extends ItemView {
         return tasks.filter((t) => t.completed);
       case "today":
         return tasks.filter(
-          (t) =>
-            !t.completed &&
-            (isDueToday(t.dueDate) || isOverdue(t.dueDate))
+          (t) => !t.completed && (isDueToday(t.dueDate) || isOverdue(t.dueDate))
         );
       case "overdue":
         return tasks.filter((t) => !t.completed && isOverdue(t.dueDate));
@@ -113,34 +114,69 @@ export class TodoView extends ItemView {
     }
   }
 
-  private renderList(parent: HTMLElement, tasks: Task[]): void {
+  /** 카테고리별로 그룹화해 렌더 (카테고리 등장 순서 유지) */
+  private renderGroups(parent: HTMLElement, tasks: Task[]): void {
     if (tasks.length === 0) {
       parent.createDiv({ cls: "two-empty", text: "없음" });
       return;
     }
-    for (const task of tasks) {
-      const row = parent.createDiv({ cls: "two-task" });
-      if (task.completed) row.addClass("is-done");
-
-      const checkbox = row.createEl("input", { type: "checkbox" });
-      checkbox.checked = task.completed;
-      checkbox.onchange = async () => {
-        await this.plugin.toggleTask(task, checkbox.checked);
-        await this.render();
-      };
-
-      const desc = row.createDiv({
-        cls: "two-task-desc",
-        text: task.description,
-      });
-      if (task.dueDate) {
-        const overdue = !task.completed && isOverdue(task.dueDate);
-        const meta = desc.createSpan({
-          cls: "two-task-meta",
-          text: `📅 ${task.dueDate}`,
-        });
-        if (overdue) meta.addClass("is-overdue");
+    const order: string[] = [];
+    const groups = new Map<string, Task[]>();
+    for (const t of tasks) {
+      const key = t.category || UNCATEGORIZED;
+      if (!groups.has(key)) {
+        groups.set(key, []);
+        order.push(key);
       }
+      groups.get(key)!.push(t);
     }
+    for (const key of order) {
+      const list = groups.get(key)!;
+      parent.createDiv({ cls: "two-cat", text: `${key} (${list.length})` });
+      for (const task of list) this.renderTask(parent, task);
+    }
+  }
+
+  private renderTask(parent: HTMLElement, task: Task): void {
+    const row = parent.createDiv({ cls: "two-task" });
+    if (task.completed) row.addClass("is-done");
+
+    const checkbox = row.createEl("input", { type: "checkbox" });
+    checkbox.checked = task.completed;
+    checkbox.onchange = async () => {
+      await this.plugin.toggleTask(task, checkbox.checked);
+      await this.render();
+    };
+
+    const main = row.createDiv({ cls: "two-task-main" });
+    const desc = main.createDiv({ cls: "two-task-desc", text: task.description });
+    // 설명 클릭 → 상세보기/편집
+    desc.onclick = () => this.openDetail(task);
+
+    const meta = main.createDiv({ cls: "two-task-metarow" });
+    if (task.dueDate) {
+      const overdue = !task.completed && isOverdue(task.dueDate);
+      const d = meta.createSpan({ cls: "two-task-meta", text: `📅 ${task.dueDate}` });
+      if (overdue) d.addClass("is-overdue");
+    }
+    if (task.detail) meta.createSpan({ cls: "two-task-meta", text: "📝" });
+  }
+
+  private openDetail(task: Task): void {
+    new TaskDetailModal(this.app, task, {
+      onSave: async (changes) => {
+        await this.plugin.updateTask(task, changes);
+        await this.render();
+      },
+      onToggle: async (completed) => {
+        await this.plugin.toggleTask(task, completed);
+        await this.render();
+      },
+      onDelete: async () => {
+        await this.plugin.deleteTask(task);
+        await this.render();
+      },
+      getCategories: () => this.plugin.knownCategories(),
+    }).open();
   }
 }

@@ -10,7 +10,7 @@ import {
   TodoSettings,
   TodoSettingTab,
 } from "./settings";
-import { VaultStore } from "./services/VaultStore";
+import { VaultStore, NewTask } from "./services/VaultStore";
 import { DailyLogger } from "./services/DailyLogger";
 import { TodoView, TODO_VIEW_TYPE } from "./views/TodoView";
 import { QuickAddModal } from "./views/QuickAddModal";
@@ -81,15 +81,24 @@ export default class TodoPlugin extends Plugin {
   }
 
   /** 할 일 생성 + (옵션) Daily Note 기록 */
-  async createTask(description: string, dueDate?: string): Promise<Task> {
-    const task = await this.store.addTask(
-      this.settings.inboxPath,
-      description,
-      dueDate
-    );
+  async createTask(input: NewTask): Promise<Task> {
+    const task = await this.store.addTask(this.settings.inboxPath, input);
     await this.logger.logCreation(task);
     this.refreshViews();
     return task;
+  }
+
+  /** 할 일 수정(설명/마감일/카테고리/상세) */
+  async updateTask(original: Task, changes: Partial<Task>): Promise<Task> {
+    const updated = await this.store.updateTask(original, changes);
+    this.refreshViews();
+    return updated;
+  }
+
+  /** 할 일 삭제 */
+  async deleteTask(task: Task): Promise<void> {
+    await this.store.deleteTask(task);
+    this.refreshViews();
   }
 
   /** 완료 토글 + 완료 시 Daily Note 기록 */
@@ -104,10 +113,22 @@ export default class TodoPlugin extends Plugin {
 
   /** 단축키로 어디서든 할 일을 추가하는 모달 */
   private quickAdd(): void {
-    new QuickAddModal(this.app, async ({ description, dueDate }) => {
-      await this.createTask(description, dueDate);
-      new Notice(`➕ ${description}`);
-    }).open();
+    new QuickAddModal(
+      this.app,
+      async (input) => {
+        await this.createTask(input);
+        new Notice(`➕ ${input.description}`);
+      },
+      () => this.knownCategories()
+    ).open();
+  }
+
+  /** 현재 Inbox 에 존재하는 카테고리 목록(자동완성용) */
+  async knownCategories(): Promise<string[]> {
+    const tasks = await this.store.readTasks(this.settings.inboxPath);
+    const set = new Set<string>();
+    for (const t of tasks) if (t.category) set.add(t.category);
+    return [...set];
   }
 
   /** 우측 사이드바에 Todo 뷰를 열고 포커스 */

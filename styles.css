@@ -87,6 +87,32 @@
   color: var(--text-error);
 }
 
+/* 카테고리 헤더 */
+.two-cat {
+  font-size: var(--font-ui-small);
+  font-weight: 600;
+  color: var(--text-normal);
+  margin: 14px 0 4px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+.two-cat:first-of-type { margin-top: 4px; }
+
+/* 카테고리 입력칸(추가행) */
+.two-cat-input { width: 90px; }
+
+/* 할 일 본문(설명+메타) */
+.two-task-main { flex: 1; min-width: 0; }
+.two-task-desc { line-height: 1.4; cursor: pointer; }
+.two-task-desc:hover { color: var(--text-accent); }
+.two-task-metarow { display: flex; gap: 8px; align-items: center; }
+
+.two-detail-meta {
+  color: var(--text-faint);
+  font-size: var(--font-ui-smaller);
+  margin: 4px 0 0;
+}
+
 /* ── Pop-out 글래스 모드 ──────────────────────────────────────────
    별도 창(Todo 새 창으로 열기)에서만 적용. 도킹된 사이드바는 그대로.
    ※ macOS '반투명 창(Translucent window)' 설정과 함께 써야 유리 느낌이 산다. */
