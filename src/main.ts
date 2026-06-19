@@ -1,4 +1,10 @@
-import { Notice, Plugin, WorkspaceLeaf } from "obsidian";
+import {
+  Notice,
+  Plugin,
+  TAbstractFile,
+  WorkspaceLeaf,
+  normalizePath,
+} from "obsidian";
 import {
   DEFAULT_SETTINGS,
   TodoSettings,
@@ -41,10 +47,26 @@ export default class TodoPlugin extends Plugin {
 
     this.addSettingTab(new TodoSettingTab(this.app, this));
 
-    // 외부(동기화 등)로 Inbox 가 바뀌면 열린 뷰를 갱신
+    // 외부(동기화 등)로 Inbox 가 바뀌면 열린 뷰를 갱신.
+    // 동기화 도구는 변경을 modify/create/rename 어느 쪽으로든 반영할 수 있으므로 전부 처리한다.
+    const isInbox = (path: string) =>
+      normalizePath(path) === normalizePath(this.settings.inboxPath);
+    const onVaultChange = (file: TAbstractFile, oldPath?: string) => {
+      if (isInbox(file.path) || (oldPath && isInbox(oldPath))) {
+        this.refreshViews();
+      }
+    };
+    this.registerEvent(this.app.vault.on("modify", (f) => onVaultChange(f)));
+    this.registerEvent(this.app.vault.on("create", (f) => onVaultChange(f)));
+    this.registerEvent(this.app.vault.on("delete", (f) => onVaultChange(f)));
     this.registerEvent(
-      this.app.vault.on("modify", (file) => {
-        if (file.path === this.settings.inboxPath) this.refreshViews();
+      this.app.vault.on("rename", (f, oldPath) => onVaultChange(f, oldPath))
+    );
+
+    // 안전망: Todo 패널이 다시 활성화될 때(앱 전환·탭 복귀·동기화 후 패널 열람)에도 새로고침
+    this.registerEvent(
+      this.app.workspace.on("active-leaf-change", (leaf) => {
+        if (leaf?.view instanceof TodoView) leaf.view.render();
       })
     );
   }
