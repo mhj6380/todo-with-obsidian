@@ -2,139 +2,184 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Todo</title>
     <style>
       :root {
-        --fg: rgba(255, 255, 255, 0.92);
-        --fg-dim: rgba(255, 255, 255, 0.5);
+        --fg: rgba(255, 255, 255, 0.95);
+        --fg-dim: rgba(255, 255, 255, 0.55);
         --accent: #6c8cff;
-        --danger: #ff6b6b;
+        --danger: #ff7676;
+        --glass: rgba(18, 18, 22, 0.3);
+        --glass-line: rgba(255, 255, 255, 0.13);
+        --blur: blur(16px);
       }
       * { box-sizing: border-box; }
       html, body {
         margin: 0;
-        height: 100%;
         background: transparent;
-        font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
-          sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
         color: var(--fg);
         -webkit-user-select: none;
         user-select: none;
         overflow: hidden;
       }
-      /* 유리 패널 — 투명 창 + macOS vibrancy 위에 옅은 틴트 */
+      /* 프로스트 유리 공통 */
+      .glass {
+        background: var(--glass);
+        -webkit-backdrop-filter: var(--blur);
+        backdrop-filter: var(--blur);
+        border: 1px solid var(--glass-line);
+        border-radius: 11px;
+      }
+
       .panel {
-        height: 100vh;
-        background: rgba(28, 28, 32, 0.28);
-        border: 1px solid rgba(255, 255, 255, 0.14);
-        border-radius: 14px;
-        backdrop-filter: blur(6px);
         display: flex;
         flex-direction: column;
-        padding: 8px 10px 10px;
+        gap: 6px;
+        padding: 4px;
       }
+
       header {
-        -webkit-app-region: drag; /* 이 영역을 잡고 창 이동 */
+        -webkit-app-region: drag; /* 잡고 창 이동 */
         display: flex;
         align-items: center;
         gap: 6px;
-        padding: 2px 2px 8px;
+        padding: 6px 10px;
       }
-      header .title {
-        font-size: 12px;
-        font-weight: 600;
-        color: var(--fg-dim);
-        flex: 1;
-      }
+      header .title { font-size: 12px; font-weight: 600; color: var(--fg-dim); flex: 1; }
       header button {
         -webkit-app-region: no-drag;
-        background: transparent;
-        border: none;
-        color: var(--fg-dim);
-        font-size: 13px;
-        cursor: pointer;
-        padding: 2px 6px;
-        border-radius: 6px;
+        background: transparent; border: none; color: var(--fg-dim);
+        font-size: 13px; cursor: pointer; padding: 1px 5px; border-radius: 6px;
       }
-      header button:hover { background: rgba(255, 255, 255, 0.1); color: var(--fg); }
+      header button:hover { background: rgba(255, 255, 255, 0.12); color: var(--fg); }
 
-      .add-row {
+      .add-input {
         -webkit-app-region: no-drag;
-        display: flex;
-        gap: 5px;
-        margin-bottom: 8px;
-      }
-      .add-row input[type="text"] {
-        flex: 1;
-        min-width: 0;
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        border-radius: 8px;
+        width: 100%;
         color: var(--fg);
-        padding: 6px 8px;
+        padding: 7px 10px;
         font-size: 13px;
         outline: none;
       }
-      .add-row input::placeholder { color: var(--fg-dim); }
+      .add-input::placeholder { color: var(--fg-dim); }
 
-      .list { flex: 1; overflow-y: auto; }
-      .list::-webkit-scrollbar { width: 6px; }
-      .list::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.18);
-        border-radius: 3px;
-      }
+      .list { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; }
+      .list::-webkit-scrollbar { width: 5px; }
+      .list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
 
       .task {
         -webkit-app-region: no-drag;
         display: flex;
-        align-items: flex-start;
-        gap: 8px;
-        padding: 7px 8px;
-        margin-bottom: 6px;
-        background: rgba(255, 255, 255, 0.07);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 10px;
+        align-items: center;
+        gap: 9px;
+        padding: 8px 10px;
       }
+      .task.dragging { opacity: 0.4; }
+      .task .grip { color: var(--fg-dim); font-size: 12px; cursor: grab; line-height: 1; }
       .task input[type="checkbox"] {
-        margin: 2px 0 0;
-        width: 16px;
-        height: 16px;
-        cursor: pointer;
-        accent-color: var(--accent);
-        flex: none;
+        width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent); flex: none; margin: 0;
       }
-      .task .body { flex: 1; font-size: 13px; line-height: 1.35; }
-      .task .meta { font-size: 11px; color: var(--fg-dim); margin-top: 2px; }
-      .task .meta.overdue { color: var(--danger); }
+      .task .body { flex: 1; font-size: 13px; line-height: 1.3; text-shadow: 0 1px 2px rgba(0,0,0,0.4); }
+      .task .due { font-size: 11px; color: var(--fg-dim); margin-left: 6px; }
+      .task .due.overdue { color: var(--danger); }
 
-      .empty { color: var(--fg-dim); font-style: italic; font-size: 13px; padding: 10px 4px; }
+      .more {
+        -webkit-app-region: no-drag;
+        text-align: center; font-size: 12px; color: var(--fg-dim);
+        padding: 6px; cursor: pointer;
+      }
+      .more:hover { color: var(--fg); }
+      .empty { color: var(--fg-dim); font-style: italic; font-size: 13px; padding: 10px; text-align: center; }
     </style>
   </head>
   <body>
-    <div class="panel">
-      <header>
+    <div class="panel" id="panel">
+      <header class="glass">
         <span class="title" id="title">✓ 할 일</span>
         <button id="refresh" title="새로고침">↻</button>
         <button id="quit" title="닫기">✕</button>
       </header>
-      <div class="add-row">
-        <input id="add-input" type="text" placeholder="할 일 추가…" />
-        <input id="add-due" type="date" style="-webkit-app-region:no-drag; width:34px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.12); border-radius:8px; color:var(--fg);" />
-      </div>
+      <input id="add-input" class="add-input glass" type="text" placeholder="할 일 추가…" />
       <div class="list" id="list"></div>
     </div>
 
     <script>
       const $ = (id) => document.getElementById(id);
+      const MARGIN = 12;
+      const PAGE = 10;
+      let open = []; // 미완료 할 일 (현재 순서)
+      let expanded = false;
+
       const todayStr = () => {
         const d = new Date();
         const p = (n) => String(n).padStart(2, "0");
         return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
       };
 
-      function render(tasks) {
-        const open = tasks.filter((t) => !t.completed);
+      function applyHeight() {
+        const list = $("list");
+        const header = document.querySelector("header");
+        const addEl = $("add-input");
+        const maxList =
+          (window.screen.availHeight || 900) - MARGIN * 2 -
+          header.offsetHeight - addEl.offsetHeight - 60;
+        list.style.maxHeight = Math.max(60, maxList) + "px";
+        requestAnimationFrame(() => {
+          const h = Math.ceil($("panel").getBoundingClientRect().height) + 2;
+          window.todoAPI.resize(h);
+        });
+      }
+
+      function makeRow(t) {
+        const row = document.createElement("div");
+        row.className = "task glass";
+        row.draggable = true;
+        row.dataset.raw = t.raw;
+
+        const grip = document.createElement("span");
+        grip.className = "grip";
+        grip.textContent = "⠿";
+
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.addEventListener("change", async () => {
+          cb.disabled = true;
+          open = (await window.todoAPI.toggle(t)).filter((x) => !x.completed);
+          render();
+        });
+
+        const body = document.createElement("div");
+        body.className = "body";
+        body.textContent = t.description;
+        if (t.dueDate) {
+          const due = document.createElement("span");
+          due.className = "due" + (t.dueDate < todayStr() ? " overdue" : "");
+          due.textContent = "📅 " + t.dueDate;
+          body.appendChild(due);
+        }
+
+        row.append(grip, cb, body);
+
+        row.addEventListener("dragstart", () => row.classList.add("dragging"));
+        row.addEventListener("dragend", async () => {
+          row.classList.remove("dragging");
+          // 화면에 보이는 새 순서 + (접혀서) 숨은 항목들 = 전체 새 순서
+          const map = new Map(open.map((t) => [t.raw, t]));
+          const visible = [...$("list").querySelectorAll(".task")].map(
+            (el) => map.get(el.dataset.raw)
+          );
+          const shown = visible.length;
+          const hidden = open.filter((t) => !visible.includes(t));
+          open = [...visible, ...hidden];
+          await window.todoAPI.reorder(open.map((t) => t.raw));
+          render();
+        });
+
+        return row;
+      }
+
+      function render() {
         $("title").textContent = `✓ 할 일 ${open.length}`;
         const list = $("list");
         list.innerHTML = "";
@@ -143,50 +188,53 @@
           e.className = "empty";
           e.textContent = "모두 완료 🎉";
           list.appendChild(e);
+          applyHeight();
           return;
         }
-        const today = todayStr();
-        for (const t of open) {
-          const row = document.createElement("div");
-          row.className = "task";
+        const limit = expanded ? open.length : PAGE;
+        open.slice(0, limit).forEach((t) => list.appendChild(makeRow(t)));
 
-          const cb = document.createElement("input");
-          cb.type = "checkbox";
-          cb.addEventListener("change", async () => {
-            cb.disabled = true;
-            const updated = await window.todoAPI.toggle(t);
-            render(updated);
+        if (open.length > PAGE) {
+          const more = document.createElement("div");
+          more.className = "more glass";
+          more.textContent = expanded ? "접기 ▲" : `더 보기 ▼ (+${open.length - PAGE})`;
+          more.addEventListener("click", () => {
+            expanded = !expanded;
+            render();
           });
-
-          const body = document.createElement("div");
-          body.className = "body";
-          body.textContent = t.description;
-          if (t.dueDate) {
-            const meta = document.createElement("div");
-            meta.className = "meta" + (t.dueDate < today ? " overdue" : "");
-            meta.textContent = "📅 " + t.dueDate;
-            body.appendChild(meta);
-          }
-
-          row.appendChild(cb);
-          row.appendChild(body);
-          list.appendChild(row);
+          list.appendChild(more);
         }
+        applyHeight();
       }
+
+      // 드래그 중 위치 미리보기
+      $("list").addEventListener("dragover", (e) => {
+        e.preventDefault();
+        const dragging = document.querySelector(".task.dragging");
+        if (!dragging) return;
+        const rows = [...$("list").querySelectorAll(".task:not(.dragging)")];
+        const after = rows.find((r) => {
+          const box = r.getBoundingClientRect();
+          return e.clientY < box.top + box.height / 2;
+        });
+        if (after) $("list").insertBefore(dragging, after);
+        else {
+          const moreBtn = $("list").querySelector(".more");
+          $("list").insertBefore(dragging, moreBtn || null);
+        }
+      });
 
       async function refresh() {
-        render(await window.todoAPI.list());
+        open = (await window.todoAPI.list()).filter((t) => !t.completed);
+        render();
       }
-
       async function add() {
         const input = $("add-input");
-        const due = $("add-due");
         const v = input.value.trim();
         if (!v) return;
         input.value = "";
-        const dueDate = due.value || undefined;
-        due.value = "";
-        render(await window.todoAPI.add({ description: v, dueDate }));
+        open = (await window.todoAPI.add({ description: v })).filter((t) => !t.completed);
+        render();
       }
 
       $("add-input").addEventListener("keydown", (e) => {
@@ -194,7 +242,8 @@
       });
       $("refresh").addEventListener("click", refresh);
       $("quit").addEventListener("click", () => window.todoAPI.quit());
-      window.todoAPI.onChanged(() => refresh()); // 외부(동기화) 변경 반영
+      window.todoAPI.onChanged(() => refresh());
+      window.addEventListener("resize", applyHeight);
 
       refresh();
     </script>

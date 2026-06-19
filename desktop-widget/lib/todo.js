@@ -120,6 +120,23 @@ class Store {
     }
   }
 
+  /**
+   * 미완료 할 일들의 순서를 재배치한다. orderedRaws 는 새 순서의 원본 줄 배열.
+   * 미완료 줄이 있던 "위치(slot)"는 유지하고 그 자리에 들어갈 내용만 바꾼다
+   * (헤더·완료된 줄은 건드리지 않음).
+   */
+  reorder(orderedRaws) {
+    const lines = this.readRaw().split("\n");
+    const slots = [];
+    for (let i = 0; i < lines.length; i++) {
+      const t = parseLine(lines[i]);
+      if (t && !t.completed) slots.push(i);
+    }
+    if (slots.length !== orderedRaws.length) return; // 그새 파일이 바뀌면 중단(안전)
+    for (let k = 0; k < slots.length; k++) lines[slots[k]] = orderedRaws[k];
+    this._write(this.inboxFile(), lines.join("\n"));
+  }
+
   _logCompletion(task) {
     const line = `- [x] ${task.description} (${nowTime()}) ✅ ${today()}`;
     const file = this.dailyFile();
