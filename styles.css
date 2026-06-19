@@ -1,0 +1,58 @@
+/* Todo with Obsidian — sidebar view styles */
+
+.two-view {
+  padding: 8px 12px;
+}
+
+.two-input-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.two-input-row input {
+  flex: 1;
+}
+
+.two-section-title {
+  font-size: var(--font-ui-small);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 12px 0 4px;
+}
+
+.two-task {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.two-task input[type="checkbox"] {
+  margin-top: 3px;
+  cursor: pointer;
+}
+
+.two-task-desc {
+  flex: 1;
+  line-height: 1.4;
+}
+
+.two-task.is-done .two-task-desc {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.two-task-meta {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-faint);
+  margin-left: 6px;
+}
+
+.two-empty {
+  color: var(--text-faint);
+  font-style: italic;
+  padding: 8px 0;
+}
