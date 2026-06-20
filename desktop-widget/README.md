@@ -26,10 +26,28 @@ npm start
 | `logCompletions` | 완료 시 Daily Note 기록 여부 |
 | `window` | 창 크기/여백 (`width,height,marginTop,marginRight`) |
 
-## 로그인 시 자동 실행 (선택)
+## 숨기기 / 다시 켜기
 
-`~/Library/LaunchAgents/com.todo.widget.plist` 를 만들어 등록하거나,
-시스템 설정 → 일반 → 로그인 항목에 실행 스크립트를 추가한다. (추후)
+- **접기(`–`)**: 작은 알약으로 접힘 → 알약 클릭으로 펼침
+- **숨기기(`✕`)**: 화면에서 사라짐(앱은 메뉴바에 살아있음)
+  → 메뉴바 **`✓` 아이콘** 클릭 또는 **`⌘⌥T`** 로 복귀
+- **종료**: 메뉴바 `✓` 우클릭 → 종료
+- 단일 인스턴스라 `npm start` 를 다시 실행해도 새 창 대신 기존 창이 복귀한다.
+
+## 로그인 시 자동 실행 (LaunchAgent)
+
+`~/Library/LaunchAgents/com.hakju.todo-widget.plist` 로 등록되어 로그인 시
+자동 실행된다.
+
+```bash
+# 켜기(등록)
+launchctl load ~/Library/LaunchAgents/com.hakju.todo-widget.plist
+# 끄기(해제)
+launchctl unload ~/Library/LaunchAgents/com.hakju.todo-widget.plist
+rm ~/Library/LaunchAgents/com.hakju.todo-widget.plist   # 완전 제거
+# 지금 바로 다시 실행
+launchctl kickstart -k gui/$(id -u)/com.hakju.todo-widget
+```
 
 ## 한계
 
