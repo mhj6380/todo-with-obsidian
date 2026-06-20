@@ -27,7 +27,7 @@
       .panel { display: flex; flex-direction: column; gap: 6px; padding: 4px; }
       header {
         -webkit-app-region: drag;
-        display: flex; align-items: center; gap: 6px; padding: 6px 10px;
+        display: flex; align-items: center; gap: 6px; padding: 6px 10px; margin: 0 10px;
       }
       header .title { font-size: 12px; font-weight: 600; color: var(--fg-dim); flex: 1; }
       header button {
@@ -36,7 +36,7 @@
       }
       header button:hover { background: rgba(255,255,255,0.12); color: var(--fg); }
 
-      .add { -webkit-app-region: no-drag; display: flex; flex-direction: column; gap: 6px; }
+      .add { -webkit-app-region: no-drag; display: flex; flex-direction: column; gap: 6px; margin: 0 10px; }
       .add input {
         width: 100%; color: var(--fg); padding: 7px 10px; font-size: 13px; outline: none;
       }
@@ -57,7 +57,7 @@
       .cat-drop .opt { padding: 6px 8px; font-size: 13px; border-radius: 7px; cursor: pointer; }
       .cat-drop .opt:hover, .cat-drop .opt.active { background: rgba(255,255,255,0.14); }
 
-      .list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
+      .list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; overflow-x: hidden; padding: 8px 10px; }
       .list::-webkit-scrollbar { width: 5px; }
       .list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
 
@@ -129,11 +129,11 @@
       /* D-1 임박: 청록 테두리 글로우 애니메이션 */
       @keyframes glowpulse {
         0%, 100% {
-          box-shadow: 0 0 4px rgba(27,245,238,0.45), inset 0 0 2px rgba(27,245,238,0.25);
-          border-color: rgba(27,245,238,0.55);
+          box-shadow: 0 0 3px rgba(27,245,238,0.5), inset 0 0 2px rgba(27,245,238,0.3);
+          border-color: rgba(27,245,238,0.6);
         }
         50% {
-          box-shadow: 0 0 16px rgba(27,245,238,0.95), inset 0 0 7px rgba(27,245,238,0.5);
+          box-shadow: 0 0 8px rgba(27,245,238,1), inset 0 0 7px rgba(27,245,238,0.55);
           border-color: rgba(27,245,238,1);
         }
       }
