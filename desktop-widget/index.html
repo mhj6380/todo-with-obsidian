@@ -84,6 +84,13 @@
         color: var(--fg-dim); font-size: 11px; cursor: grab; user-select: none; margin-right: 1px;
       }
       .cat-head.dragging { opacity: 0.5; }
+      .del {
+        flex: none; align-self: center; color: var(--fg-dim); font-size: 12px;
+        cursor: pointer; opacity: 0; padding: 2px 5px; border-radius: 6px; white-space: nowrap;
+      }
+      .task:hover .del { opacity: 0.6; }
+      .del:hover { opacity: 1; background: rgba(255,118,118,0.15); color: var(--danger); }
+      .del.armed { opacity: 1; color: var(--danger); font-size: 11px; font-weight: 600; }
       .task input[type="checkbox"] {
         width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent); flex: none; margin: 1px 0 0;
       }
@@ -282,7 +289,31 @@
           openPicker(t);
         });
 
-        row.append(grip, cb, main, badge);
+        // 삭제 (한 번 누르면 "삭제?" 확인, 다시 누르면 삭제)
+        const del = document.createElement("div");
+        del.className = "del";
+        del.textContent = "✕";
+        del.title = "삭제";
+        let armed = false, timer = null;
+        del.addEventListener("click", async (e) => {
+          e.stopPropagation();
+          if (!armed) {
+            armed = true;
+            del.classList.add("armed");
+            del.textContent = "삭제?";
+            timer = setTimeout(() => {
+              armed = false;
+              del.classList.remove("armed");
+              del.textContent = "✕";
+            }, 1800);
+            return;
+          }
+          clearTimeout(timer);
+          open = (await window.todoAPI.delete(t)).filter((x) => !x.completed);
+          render();
+        });
+
+        row.append(grip, cb, main, badge, del);
         return row;
       }
 

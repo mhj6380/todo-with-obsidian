@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld("todoAPI", {
     ipcRenderer.invoke("todos:move", { task, toCategory, beforeRaw }),
   moveCategory: (name, beforeName) =>
     ipcRenderer.invoke("todos:moveCategory", { name, beforeName }),
+  delete: (task) => ipcRenderer.invoke("todos:delete", task),
   setDue: (task, dueDate) => ipcRenderer.invoke("todos:setDue", { task, dueDate }),
   resize: (height) => ipcRenderer.send("window:resize", height),
   hide: () => ipcRenderer.send("app:hide"),

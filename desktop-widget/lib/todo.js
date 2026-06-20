@@ -262,6 +262,18 @@ class Store {
     this._write(this.inboxFile(), insertBlock(data, blockText, cat));
   }
 
+  /** 할 일(상세 블록 포함) 삭제 */
+  deleteTask(target) {
+    const lines = this.readRaw().split("\n");
+    const all = parseDocument(lines.join("\n"));
+    const src =
+      (target && target.raw && all.find((t) => t.raw === target.raw)) ||
+      all.find((t) => target && t.description === target.description);
+    if (!src) return;
+    lines.splice(src.start, src.end - src.start);
+    this._write(this.inboxFile(), lines.join("\n"));
+  }
+
   /** 카테고리(## 섹션 전체)를 beforeName 앞으로 이동. 없으면 맨 끝. */
   moveCategory(name, beforeName) {
     const lines = this.readRaw().split("\n");
