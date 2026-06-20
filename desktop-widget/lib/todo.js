@@ -262,6 +262,22 @@ class Store {
     this._write(this.inboxFile(), insertBlock(data, blockText, cat));
   }
 
+  /** 상세내용 설정/수정 (블록 통째 교체, 위치·카테고리 유지) */
+  updateDetail(target, detail) {
+    const lines = this.readRaw().split("\n");
+    const all = parseDocument(lines.join("\n"));
+    const src =
+      (target && target.raw && all.find((t) => t.raw === target.raw)) ||
+      all.find((t) => target && t.description === target.description);
+    if (!src) return;
+    const t = Object.assign({}, src, {
+      detail: detail && detail.trim() ? detail.trim() : undefined,
+    });
+    const block = serializeBlock(t).split("\n");
+    lines.splice(src.start, src.end - src.start, ...block);
+    this._write(this.inboxFile(), lines.join("\n"));
+  }
+
   /** 할 일(상세 블록 포함) 삭제 */
   deleteTask(target) {
     const lines = this.readRaw().split("\n");

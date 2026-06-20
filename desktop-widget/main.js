@@ -165,6 +165,10 @@ ipcMain.handle("todos:delete", (_e, t) => {
   store.deleteTask(t);
   return store.readTasks();
 });
+ipcMain.handle("todos:updateDetail", (_e, p) => {
+  store.updateDetail(p.task, p.detail);
+  return store.readTasks();
+});
 ipcMain.handle("todos:setDue", (_e, p) => {
   store.setDue(p.task, p.dueDate);
   return store.readTasks();
