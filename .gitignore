@@ -1,5 +1,5 @@
-# build output
-main.js
+# build output (플러그인 루트 번들만 — desktop-widget/main.js 는 소스라 추적)
+/main.js
 *.js.map
 
 # deps
