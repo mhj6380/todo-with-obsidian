@@ -290,6 +290,29 @@ class Store {
     this._write(this.inboxFile(), lines.join("\n"));
   }
 
+  /** 카테고리를 목록에서 제거. 헤딩만 지우고 그 안의 할 일은 미분류로 옮긴다. */
+  deleteCategory(name) {
+    let lines = this.readRaw().split("\n");
+    const h = lines.findIndex((l) => l.trim() === `## ${name}`);
+    if (h === -1) return;
+    let end = lines.length;
+    for (let i = h + 1; i < lines.length; i++) {
+      if (HEADING_RE.test(lines[i])) { end = i; break; }
+    }
+    const body = lines.slice(h + 1, end).join("\n").replace(/^\n+/, "").replace(/\s+$/, "");
+    lines.splice(h, end - h); // 헤딩 + 섹션 제거
+    if (body.trim()) {
+      // 남은 할 일을 미분류 영역(첫 ## 헤딩 앞)으로 이동
+      const firstH = lines.findIndex((l) => /^##\s/.test(l));
+      if (firstH === -1) {
+        this._write(this.inboxFile(), `${lines.join("\n").replace(/\s+$/, "")}\n${body}\n`);
+        return;
+      }
+      lines.splice(firstH, 0, body, "");
+    }
+    this._write(this.inboxFile(), lines.join("\n"));
+  }
+
   /** 카테고리(## 섹션 전체)를 beforeName 앞으로 이동. 없으면 맨 끝. */
   moveCategory(name, beforeName) {
     const lines = this.readRaw().split("\n");

@@ -161,6 +161,10 @@ ipcMain.handle("todos:moveCategory", (_e, p) => {
   store.moveCategory(p.name, p.beforeName);
   return store.readTasks();
 });
+ipcMain.handle("todos:deleteCategory", (_e, name) => {
+  store.deleteCategory(name);
+  return store.readTasks();
+});
 ipcMain.handle("todos:delete", (_e, t) => {
   store.deleteTask(t);
   return store.readTasks();
