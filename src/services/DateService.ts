@@ -28,3 +28,20 @@ export function isDueToday(dueDate?: string, ref: string = today()): boolean {
   if (!dueDate) return false;
   return dueDate === ref;
 }
+
+/** 오늘부터 마감일까지 남은 일수 (음수 = 지남). 마감 없으면 null */
+export function daysUntil(dueDate?: string, ref: Date = new Date()): number | null {
+  if (!dueDate) return null;
+  const [y, m, d] = dueDate.split("-").map(Number);
+  const due = new Date(y, m - 1, d);
+  const base = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate());
+  return Math.round((due.getTime() - base.getTime()) / 86400000);
+}
+
+/** D-N 라벨 (오늘=D-DAY, 지남=D+N). 마감 없으면 null */
+export function dDayLabel(dueDate?: string): string | null {
+  const n = daysUntil(dueDate);
+  if (n === null) return null;
+  if (n === 0) return "D-DAY";
+  return n > 0 ? `D-${n}` : `D+${-n}`;
+}

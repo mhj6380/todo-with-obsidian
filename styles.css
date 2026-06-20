@@ -113,6 +113,29 @@
   margin: 4px 0 0;
 }
 
+/* D-N 마감 배지 (우측) */
+.two-dday {
+  margin-left: auto;
+  align-self: center;
+  font-size: var(--font-ui-smaller);
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+  padding-left: 6px;
+}
+.two-dday.is-urgent { color: #1bf5ee; }
+.two-dday.is-overdue { color: var(--text-error); }
+
+/* D-1 임박: 청록 테두리 글로우 */
+@keyframes two-glow {
+  0%, 100% { box-shadow: 0 0 3px rgba(27, 245, 238, 0.4); }
+  50% { box-shadow: 0 0 12px rgba(27, 245, 238, 0.9); }
+}
+.two-task.is-glow {
+  border-radius: 8px;
+  animation: two-glow 1.6s ease-in-out infinite;
+}
+
 /* ── Pop-out 글래스 모드 ──────────────────────────────────────────
    별도 창(Todo 새 창으로 열기)에서만 적용. 도킹된 사이드바는 그대로.
    ※ macOS '반투명 창(Translucent window)' 설정과 함께 써야 유리 느낌이 산다. */

@@ -7,7 +7,9 @@ contextBridge.exposeInMainWorld("todoAPI", {
   reorder: (category, orderedRaws) =>
     ipcRenderer.invoke("todos:reorder", { category, orderedRaws }),
   categories: () => ipcRenderer.invoke("todos:categories"),
+  setDue: (task, dueDate) => ipcRenderer.invoke("todos:setDue", { task, dueDate }),
   resize: (height) => ipcRenderer.send("window:resize", height),
+  hide: () => ipcRenderer.send("app:hide"),
   quit: () => ipcRenderer.invoke("app:quit"),
   onChanged: (cb) => ipcRenderer.on("todos:changed", cb),
 });

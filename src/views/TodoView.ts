@@ -1,7 +1,7 @@
 import { ItemView, WorkspaceLeaf } from "obsidian";
 import type TodoPlugin from "../main";
 import { Task } from "../model/Task";
-import { isDueToday, isOverdue } from "../services/DateService";
+import { daysUntil, dDayLabel, isDueToday, isOverdue } from "../services/DateService";
 import { TaskDetailModal } from "./TaskDetailModal";
 import { CategorySuggest } from "./CategorySuggest";
 
@@ -159,12 +159,16 @@ export class TodoView extends ItemView {
     desc.onclick = () => this.openDetail(task);
 
     const meta = main.createDiv({ cls: "two-task-metarow" });
-    if (task.dueDate) {
-      const overdue = !task.completed && isOverdue(task.dueDate);
-      const d = meta.createSpan({ cls: "two-task-meta", text: `📅 ${task.dueDate}` });
-      if (overdue) d.addClass("is-overdue");
-    }
     if (task.detail) meta.createSpan({ cls: "two-task-meta", text: "📝" });
+
+    // 우측 D-N 배지
+    if (task.dueDate && !task.completed) {
+      const n = daysUntil(task.dueDate);
+      const badge = row.createSpan({ cls: "two-dday", text: dDayLabel(task.dueDate)! });
+      if (n !== null && n < 0) badge.addClass("is-overdue");
+      else if (n !== null && n <= 1) badge.addClass("is-urgent");
+      if (n === 1) row.addClass("is-glow");
+    }
   }
 
   private openDetail(task: Task): void {

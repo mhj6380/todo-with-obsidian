@@ -192,6 +192,25 @@ class Store {
     if (this.cfg.logCompletions) this._logCompletion(t);
   }
 
+  /** 할 일의 마감일 설정/변경/해제 (date 가 빈 값이면 제거). 상세는 보존. */
+  setDue(target, date) {
+    const lines = this.readRaw().split("\n");
+    let hit = -1;
+    if (target && target.raw) hit = lines.findIndex((l) => l === target.raw);
+    if (hit === -1 && target && target.description) {
+      hit = lines.findIndex((l) => {
+        const t = parseLine(l);
+        return t && t.description === target.description;
+      });
+    }
+    if (hit === -1) return;
+    const t = parseLine(lines[hit]);
+    if (!t) return;
+    t.dueDate = date ? date : undefined;
+    lines[hit] = serialize(t);
+    this._write(this.inboxFile(), lines.join("\n"));
+  }
+
   /** 한 카테고리 안의 "미완료" 할 일 블록 순서를 재배치 (상세 블록 포함 이동) */
   reorder(category, orderedRaws) {
     const cat = category || null;
