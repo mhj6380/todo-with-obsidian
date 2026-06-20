@@ -45,9 +45,21 @@
       .add-row2 .cat-wrap { position: relative; flex: 1; }
       .add-row2 .cat-wrap input { width: 100%; }
       .add-row2 button {
-        background: var(--accent); color: #fff; border: none; border-radius: 9px;
-        padding: 0 14px; font-size: 13px; cursor: pointer;
+        -webkit-app-region: no-drag;
+        background: rgba(255, 255, 255, 0.1); color: var(--fg);
+        border: 1px solid var(--glass-line); border-radius: 9px;
+        padding: 0 14px; font-size: 18px; line-height: 1; cursor: pointer;
       }
+      .add-row2 button:hover { background: rgba(255, 255, 255, 0.18); }
+
+      /* 접힌 미니 알약 */
+      #mini {
+        -webkit-app-region: no-drag;
+        display: flex; align-items: center; justify-content: center;
+        margin: 0; padding: 8px 12px; font-size: 13px; font-weight: 600;
+        color: var(--fg); cursor: pointer; gap: 6px;
+      }
+      #mini:hover { background: rgba(40, 40, 46, 0.5); }
       /* 카테고리 히스토리 드롭다운 */
       .cat-drop {
         position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 10;
@@ -178,6 +190,7 @@
       <header class="glass">
         <span class="title" id="title">✓ 할 일</span>
         <button id="refresh" title="새로고침">↻</button>
+        <button id="mini-btn" title="접기">–</button>
         <button id="quit" title="숨기기 (⌘⌥T 로 복귀)">✕</button>
       </header>
       <div class="add">
@@ -187,16 +200,19 @@
             <input id="add-cat" class="glass" type="text" placeholder="카테고리 (선택)" autocomplete="off" />
             <div class="cat-drop glass" id="cat-drop"></div>
           </div>
-          <button id="add-btn">추가</button>
+          <button id="add-btn" title="추가">+</button>
         </div>
       </div>
       <div class="list" id="list"></div>
+    </div>
+    <div id="mini" class="glass" style="display:none">
+      <span id="mini-count">✓ 0</span>
     </div>
 
     <script>
       const $ = (id) => document.getElementById(id);
       const MARGIN = 12, PAGE = 10, NONE = " "; // 미분류 키
-      let open = [], allCats = [], expanded = false;
+      let open = [], allCats = [], expanded = false, mini = false;
       const collapsed = new Set();
       const shownDetails = new Set();
 
@@ -219,7 +235,22 @@
         return n > 0 ? `D-${n}` : `D+${-n}`;
       }
 
+      function resizeMini() {
+        $("mini-count").textContent = `✓ ${open.length}`;
+        requestAnimationFrame(() => {
+          const h = Math.ceil($("mini").getBoundingClientRect().height) + 2;
+          window.todoAPI.resize(h, 120);
+        });
+      }
+      function setMini(on) {
+        mini = on;
+        $("panel").style.display = on ? "none" : "flex";
+        $("mini").style.display = on ? "flex" : "none";
+        if (on) resizeMini();
+        else render();
+      }
       function applyHeight() {
+        if (mini) return;
         const header = document.querySelector("header");
         const add = document.querySelector(".add");
         const maxList = (window.screen.availHeight || 900) - MARGIN * 2 -
@@ -575,7 +606,8 @@
         const all = await window.todoAPI.list();
         open = all.filter((t) => !t.completed);
         allCats = await window.todoAPI.categories();
-        render();
+        if (mini) resizeMini();
+        else render();
       }
       async function add() {
         const v = $("add-desc").value.trim();
@@ -591,6 +623,8 @@
       $("add-cat").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.isComposing) add(); });
       $("add-btn").addEventListener("click", add);
       $("refresh").addEventListener("click", refresh);
+      $("mini-btn").addEventListener("click", () => setMini(true));
+      $("mini").addEventListener("click", () => setMini(false));
       $("quit").addEventListener("click", () => window.todoAPI.hide());
       window.todoAPI.onChanged(() => refresh());
       window.addEventListener("resize", applyHeight);

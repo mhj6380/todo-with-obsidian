@@ -13,7 +13,7 @@ contextBridge.exposeInMainWorld("todoAPI", {
     ipcRenderer.invoke("todos:moveCategory", { name, beforeName }),
   delete: (task) => ipcRenderer.invoke("todos:delete", task),
   setDue: (task, dueDate) => ipcRenderer.invoke("todos:setDue", { task, dueDate }),
-  resize: (height) => ipcRenderer.send("window:resize", height),
+  resize: (height, width) => ipcRenderer.send("window:resize", { height, width }),
   hide: () => ipcRenderer.send("app:hide"),
   quit: () => ipcRenderer.invoke("app:quit"),
   onChanged: (cb) => ipcRenderer.on("todos:changed", cb),
