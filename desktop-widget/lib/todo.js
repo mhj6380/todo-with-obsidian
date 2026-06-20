@@ -234,6 +234,59 @@ class Store {
     this._write(this.inboxFile(), lines.join("\n"));
   }
 
+  /**
+   * 할 일을 이동한다(상세 블록째). 같은 카테고리면 순서 변경, 다른 카테고리면
+   * 카테고리 이동. beforeRaw 가 있으면 그 할 일 바로 앞에, 없으면 카테고리 끝에.
+   */
+  moveTask(target, toCategory, beforeRaw) {
+    const cat = toCategory || null;
+    let lines = this.readRaw().split("\n");
+    const all = parseDocument(lines.join("\n"));
+    const src =
+      (target && target.raw && all.find((t) => t.raw === target.raw)) ||
+      all.find((t) => target && t.description === target.description);
+    if (!src) return;
+    const blockText = lines.slice(src.start, src.end).join("\n");
+    lines.splice(src.start, src.end - src.start);
+    let data = lines.join("\n");
+
+    if (beforeRaw) {
+      const after = parseDocument(data).find((t) => t.raw === beforeRaw);
+      if (after) {
+        const l2 = data.split("\n");
+        l2.splice(after.start, 0, blockText);
+        this._write(this.inboxFile(), l2.join("\n"));
+        return;
+      }
+    }
+    this._write(this.inboxFile(), insertBlock(data, blockText, cat));
+  }
+
+  /** 카테고리(## 섹션 전체)를 beforeName 앞으로 이동. 없으면 맨 끝. */
+  moveCategory(name, beforeName) {
+    const lines = this.readRaw().split("\n");
+    const sectionOf = (nm) => {
+      const h = lines.findIndex((l) => l.trim() === `## ${nm}`);
+      if (h === -1) return null;
+      let end = lines.length;
+      for (let i = h + 1; i < lines.length; i++) {
+        if (HEADING_RE.test(lines[i])) { end = i; break; }
+      }
+      return { start: h, end };
+    };
+    const sec = sectionOf(name);
+    if (!sec) return;
+    const block = lines.slice(sec.start, sec.end);
+    lines.splice(sec.start, sec.end - sec.start);
+    let insertAt = lines.length;
+    if (beforeName) {
+      const b = lines.findIndex((l) => l.trim() === `## ${beforeName}`);
+      if (b !== -1) insertAt = b;
+    }
+    lines.splice(insertAt, 0, ...block);
+    this._write(this.inboxFile(), lines.join("\n"));
+  }
+
   _logCompletion(task) {
     const line = `- [x] ${task.description} (${nowTime()}) ✅ ${today()}`;
     const file = this.dailyFile();
